@@ -48,7 +48,7 @@ def perform_test(test_loader, model, test_meter, cfg, writer=None):
     test_meter.iter_tic()
 
     for cur_iter, (inputs, labels, video_idx, time, meta) in enumerate(test_loader):
-
+        # print(meta)
         if cfg.NUM_GPUS:
             # Transfer the data to the current GPU device.
             if isinstance(inputs, (list,)):
@@ -63,6 +63,7 @@ def perform_test(test_loader, model, test_meter, cfg, writer=None):
                 if isinstance(val, (list,)):
                     for i in range(len(val)):
                         val[i] = val[i].cuda(non_blocking=True)
+                        # val[i] = val[i]
                 else:
                     meta[key] = val.cuda(non_blocking=True)
         test_meter.data_toc()
@@ -70,8 +71,11 @@ def perform_test(test_loader, model, test_meter, cfg, writer=None):
         if cfg.DETECTION.ENABLE:
             # Compute the predictions.
             preds = model(inputs, meta["boxes"])
+            # print(preds)
             ori_boxes = meta["ori_boxes"]
+            # print(ori_boxes)
             metadata = meta["metadata"]
+            # print(metadata)
 
             preds = preds.detach().cpu() if cfg.NUM_GPUS else preds.detach()
             ori_boxes = ori_boxes.detach().cpu() if cfg.NUM_GPUS else ori_boxes.detach()
@@ -81,9 +85,11 @@ def perform_test(test_loader, model, test_meter, cfg, writer=None):
                 preds = torch.cat(du.all_gather_unaligned(preds), dim=0)
                 ori_boxes = torch.cat(du.all_gather_unaligned(ori_boxes), dim=0)
                 metadata = torch.cat(du.all_gather_unaligned(metadata), dim=0)
-
+            # print(ori_boxes)
             test_meter.iter_toc()
-            # Update and log stats.
+            # Update and log stats.     本来没问题，传入进去就有问题了
+            # if ori_boxes.shape[1] == 13:
+            #     print('sb')
             test_meter.update_stats(preds, ori_boxes, metadata)
             test_meter.log_iter_stats(None, cur_iter)
         elif cfg.TASK == "ssl" and cfg.MODEL.MODEL_NAME == "ContrastiveModel":
@@ -120,13 +126,19 @@ def perform_test(test_loader, model, test_meter, cfg, writer=None):
             preds = preds.cpu()
             labels = labels.cpu()
             video_idx = video_idx.cpu()
-
-        test_meter.iter_toc()
+        try:
+            test_meter.iter_toc()
+        except:
+            pass
 
         if not cfg.VIS_MASK.ENABLE:
             # Update and log stats.
             test_meter.update_stats(preds.detach(), labels.detach(), video_idx.detach())
-        test_meter.log_iter_stats(cur_iter)
+        # test_meter.log_iter_stats(cur_iter)
+        try:
+            test_meter.log_iter_stats(cur_iter)
+        except:
+            test_meter.log_iter_stats(None, cur_iter)
 
         test_meter.iter_tic()
 
@@ -211,6 +223,7 @@ def test(cfg):
             assert cfg.NUM_GPUS == cfg.TEST.BATCH_SIZE or cfg.NUM_GPUS == 0
             test_meter = AVAMeter(len(test_loader), cfg, mode="test")
         else:
+            # print(test_loader.dataset.num_videos)
             assert (
                 test_loader.dataset.num_videos
                 % (cfg.TEST.NUM_ENSEMBLE_VIEWS * cfg.TEST.NUM_SPATIAL_CROPS)

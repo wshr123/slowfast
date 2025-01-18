@@ -76,6 +76,7 @@ def train_epoch(
     loss_fun = losses.get_loss_func(cfg.MODEL.LOSS_FUNC)(reduction="mean")
 
     for cur_iter, (inputs, labels, index, time, meta) in enumerate(train_loader):
+        # print(meta)
         # Transfer the data to the current GPU device.
         if cfg.NUM_GPUS:
             if isinstance(inputs, (list,)):
@@ -135,7 +136,8 @@ def train_epoch(
                 preds = model(inputs)
             if cfg.TASK == "ssl" and cfg.MODEL.MODEL_NAME == "ContrastiveModel":
                 labels = torch.zeros(
-                    preds.size(0), dtype=labels.dtype, device=labels.device
+                    preds.size(0), dtype=labels.dtype, device=labels.device猴
+
                 )
 
             if cfg.MODEL.MODEL_NAME == "ContrastiveModel" and partial_loss:
@@ -435,7 +437,7 @@ def calculate_and_update_precise_bn(loader, model, num_iters=200, use_gpu=True):
     """
 
     def _gen_loader():
-        for inputs, *_ in loader:
+        for inputs, target in loader:
             if use_gpu:
                 if isinstance(inputs, (list,)):
                     for i in range(len(inputs)):
@@ -445,7 +447,7 @@ def calculate_and_update_precise_bn(loader, model, num_iters=200, use_gpu=True):
             yield inputs
 
     # Update the bn stats.
-    update_bn_stats(model, _gen_loader(), num_iters)
+    update_bn_stats(model, _gen_loader(), num_iters, )
 
 
 def build_trainer(cfg):
@@ -467,6 +469,9 @@ def build_trainer(cfg):
     """
     # Build the video model and print model statistics.
     model = build_model(cfg)
+    # print(model)
+    # for name, param in model.state_dict().items():
+    #     print(name)
     if du.is_master_proc() and cfg.LOG_MODEL_INFO:
         flops, params = misc.log_model_info(model, cfg, use_train_input=True)
 
@@ -522,8 +527,8 @@ def train(cfg):
     # Build the video model and print model statistics.
     model = build_model(cfg)
     flops, params = 0.0, 0.0
-    if du.is_master_proc() and cfg.LOG_MODEL_INFO:
-        flops, params = misc.log_model_info(model, cfg, use_train_input=True)
+    # if du.is_master_proc() and cfg.LOG_MODEL_INFO:
+    #     flops, params = misc.log_model_info(model, cfg, use_train_input=True)
 
     # Construct the optimizer.
     optimizer = optim.construct_optimizer(model, cfg)
@@ -655,8 +660,29 @@ def train(cfg):
         loader.shuffle_dataset(train_loader, cur_epoch)
         if hasattr(train_loader.dataset, "_set_epoch_num"):
             train_loader.dataset._set_epoch_num(cur_epoch)
+        # eval_epoch(val_loader, model, val_meter, start_epoch, cfg, train_loader, writer)#todo do eval test
         # Train for one epoch.
         epoch_timer.epoch_tic()
+
+        cu.save_checkpoint(
+            cfg.OUTPUT_DIR,
+            model,
+            optimizer,
+            cur_epoch,
+            cfg,
+            scaler if cfg.TRAIN.MIXED_PRECISION else None,
+        )
+        #+++++++++++++++++++++++++++++++++++++++
+        # eval_epoch(
+        #     val_loader,
+        #     model,
+        #     val_meter,
+        #     cur_epoch,
+        #     cfg,
+        #     train_loader,
+        #     writer,
+        # )
+        #+++++++++++++++++++++++++++++++++++++++
         train_epoch(
             train_loader,
             model,
@@ -699,18 +725,18 @@ def train(cfg):
         )
 
         # Compute precise BN stats.
-        if (
-            (is_checkp_epoch or is_eval_epoch)
-            and cfg.BN.USE_PRECISE_STATS
-            and len(get_bn_modules(model)) > 0
-        ):
-            calculate_and_update_precise_bn(
-                precise_bn_loader,
-                model,
-                min(cfg.BN.NUM_BATCHES_PRECISE, len(precise_bn_loader)),
-                cfg.NUM_GPUS > 0,
-            )
-        _ = misc.aggregate_sub_bn_stats(model)
+        # if (
+        #     (is_checkp_epoch or is_eval_epoch)
+        #     and cfg.BN.USE_PRECISE_STATS
+        #     and len(get_bn_modules(model)) > 0
+        # ):
+        #     calculate_and_update_precise_bn(
+        #         precise_bn_loader,
+        #         model,
+        #         min(cfg.BN.NUM_BATCHES_PRECISE, len(precise_bn_loader)),
+        #         cfg.NUM_GPUS > 0,
+        #     )
+        # _ = misc.aggregate_sub_bn_stats(model)
 
         # Save a checkpoint.
         if is_checkp_epoch:
