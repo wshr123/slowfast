@@ -654,6 +654,7 @@ class ResNet(nn.Module):
         x = self.s4(x)
         x = self.s5(x)
         if self.enable_detection:
+            # print(x[0].shape)
             x = self.head(x, bboxes)
         else:
             x = self.head(x)
@@ -683,7 +684,8 @@ class X3D(nn.Module):
         self.norm_module = get_norm(cfg)
         self.enable_detection = cfg.DETECTION.ENABLE
         self.num_pathways = 1
-
+        pool_size = _POOL1[cfg.MODEL.ARCH]
+        width_per_group = cfg.RESNET.WIDTH_PER_GROUP
         exp_stage = 2.0
         self.dim_c1 = cfg.X3D.DIM_C1
 
@@ -707,7 +709,17 @@ class X3D(nn.Module):
         init_helper.init_weights(
             self, cfg.MODEL.FC_INIT_STD, cfg.RESNET.ZERO_INIT_FINAL_BN
         )
-
+        self.head = head_helper.ResNetRoIHead(
+            dim_in= [192],
+            num_classes=cfg.MODEL.NUM_CLASSES,
+            pool_size=[[cfg.DATA.NUM_FRAMES // pool_size[0][0], 1, 1]],
+            resolution=[[cfg.DETECTION.ROI_XFORM_RESOLUTION] * 2],
+            scale_factor=[cfg.DETECTION.SPATIAL_SCALE_FACTOR],
+            dropout_rate=cfg.MODEL.DROPOUT_RATE,
+            act_func=cfg.MODEL.HEAD_ACT,
+            aligned=cfg.DETECTION.ALIGNED,
+            detach_final_fc=cfg.MODEL.DETACH_FINAL_FC,
+        )
     def _round_repeats(self, repeats, multiplier):
         """Round number of layers based on depth multiplier."""
         multiplier = multiplier
@@ -798,7 +810,10 @@ class X3D(nn.Module):
 
     def forward(self, x, bboxes=None):
         for module in self.children():
-            x = module(x)
+            if module != self.head:
+                x = module(x)
+            else:
+                x = module(x, bboxes)
         return x
 
 
