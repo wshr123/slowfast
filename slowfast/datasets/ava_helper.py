@@ -10,7 +10,8 @@ from slowfast.utils.env import pathmgr
 logger = logging.getLogger(__name__)
 
 FPS = 30
-AVA_VALID_FRAMES = range(902, 1799)
+AVA_VALID_FRAMES = range(1, 16)
+# AVA_VALID_FRAMES = range(902, 1799)
 
 
 def load_image_lists(cfg, is_train):
@@ -38,6 +39,7 @@ def load_image_lists(cfg, is_train):
         with pathmgr.open(list_filename, "r") as f:
             f.readline()
             for line in f:
+                line = line.strip('"')  # todo
                 row = line.split()
                 # The format of each row should follow:
                 # original_vido_id video_id frame_id path labels.
@@ -85,7 +87,6 @@ def load_boxes_and_labels(cfg, mode):
         for filename in gt_lists + pred_lists
     ]
     ann_is_gt_box = [True] * len(gt_lists) + [False] * len(pred_lists)
-
     detect_thresh = cfg.AVA.DETECTION_SCORE_THRESH
     # Only select frame_sec % 4 = 0 samples for validation if not
     # set FULL_TEST_ON_VAL.
@@ -100,7 +101,7 @@ def load_boxes_and_labels(cfg, mode):
     logger.info("Detection threshold: {}".format(detect_thresh))
     logger.info("Number of unique boxes: %d" % unique_box_count)
     logger.info("Number of annotations: %d" % count)
-
+    # print(all_boxes)
     return all_boxes
 
 
@@ -124,7 +125,7 @@ def get_keyframe_data(boxes_and_labels):
         0: 900
         30: 901
         """
-        return (sec - 900) * FPS
+        return (sec) * FPS
 
     keyframe_indices = []
     keyframe_boxes_and_labels = []
@@ -199,7 +200,6 @@ def parse_bboxes_file(ann_filenames, ann_is_gt_box, detect_thresh, boxes_sample_
                 box_key = ",".join(row[2:6])
                 box = list(map(float, row[2:6]))
                 label = -1 if row[6] == "" else int(row[6])
-
                 if video_name not in all_boxes:
                     all_boxes[video_name] = {}
                     for sec in AVA_VALID_FRAMES:

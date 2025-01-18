@@ -61,10 +61,10 @@ class Ava(torch.utils.data.Dataset):
             self._image_paths,
             self._video_idx_to_name,
         ) = ava_helper.load_image_lists(cfg, is_train=(self._split == "train"))
-
         # Loading annotations for boxes and labels.
         boxes_and_labels = ava_helper.load_boxes_and_labels(cfg, mode=self._split)
-
+        # print(len(self._image_paths))
+        # print(len(boxes_and_labels))
         assert len(boxes_and_labels) == len(self._image_paths)
 
         boxes_and_labels = [
@@ -407,7 +407,7 @@ class Ava(torch.utils.data.Dataset):
                 assert label >= 1 and label <= 80
                 label_arrs[i][label - 1] = 1
 
-        imgs = utils.pack_pathway_output(self.cfg, imgs)
+        imgs = utils.pack_pathway_output(self.cfg, imgs)    #这里分开采样了slow,fast
         metadata = [[video_idx, sec]] * len(boxes)
 
         extra_data = {

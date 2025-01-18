@@ -170,6 +170,12 @@ def construct_loader(cfg, split, is_precise_bn=False):
                 collate_fn=collate_func,
                 worker_init_fn=utils.loader_worker_init_fn(dataset),
             )
+    # for batch_idx, (inputs, labels, *others) in enumerate(loader):
+    #     print(f"Batch {batch_idx}:")
+    #     print(f"  Inputs shape: {[x.shape for x in inputs] if isinstance(inputs, list) else inputs.shape}")
+    #     print(f"  Labels shape: {labels.shape if isinstance(labels, torch.Tensor) else type(labels)}")
+    #     print(f"  Other data: {others}")
+    #     break  # 查看第一个批次即可，避免打印过多数据
     return loader
 
 
