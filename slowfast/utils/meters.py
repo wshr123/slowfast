@@ -65,6 +65,7 @@ class AVAMeter:
         self.net_timer = Timer()
         self.all_preds = []
         self.all_ori_boxes = []
+        self.all_ori_box = []
         self.all_metadata = []
         self.overall_iters = overall_iters
         self.excluded_keys = read_exclusions(
@@ -149,8 +150,9 @@ class AVAMeter:
         """
         Stop to record time.
         """
-        self.iter_timer.pause()
-        self.net_timer.pause()
+        # self.iter_timer.pause()
+        # self.net_timer.pause()
+        pass
 
     def data_toc(self):
         self.data_timer.pause()
@@ -176,6 +178,10 @@ class AVAMeter:
             loss (float): loss value.
             lr (float): learning rate.
         """
+        # print(self.all_preds)
+        # print(self.all_ori_boxes)
+        # if ori_boxes.shape[1] == 13:      #todo
+        #     return
         if self.mode in ["val", "test"]:
             self.all_preds.append(preds)
             self.all_ori_boxes.append(ori_boxes)
