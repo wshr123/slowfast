@@ -1,10 +1,10 @@
 TRAIN:
   ENABLE: True
   DATASET: ava
-  BATCH_SIZE: 64
-  EVAL_PERIOD: 5
+  BATCH_SIZE: 16
+  EVAL_PERIOD: 1
   CHECKPOINT_PERIOD: 1
-  AUTO_RESUME: True
+  AUTO_RESUME: False
   # CHECKPOINT_FILE_PATH: path to the pretrain checkpoint file.
   CHECKPOINT_TYPE: caffe2
 DATA:
@@ -18,12 +18,21 @@ DETECTION:
   ENABLE: True
   ALIGNED: True
 AVA:
-  DETECTION_SCORE_THRESH: 0.8
+  DETECTION_SCORE_THRESH: 0.9
+  FRAME_DIR: '/media/zhong/1.0T/zhong_work/CVB/000058916v001/data/raw_frames'
+  FRAME_LIST_DIR: '/media/zhong/1.0T/zhong_work/CVB/000058916v001/data/ava_v2.2'
+  ANNOTATION_DIR: '/media/zhong/1.0T/zhong_work/CVB/000058916v001/data/ava_v2.2'
+  LABEL_MAP_FILE: 'behaviour_list.pbtxt'
+  GROUNDTRUTH_FILE: 'ava_test_set.csv'
+  TRAIN_GT_BOX_LISTS: ['ava_train_set.csv']
   TRAIN_PREDICT_BOX_LISTS: [
-    "ava_train_v2.2.csv",
-    "person_box_67091280_iou90/ava_detection_train_boxes_and_labels_include_negative_v2.2.csv",
+    "ava_train_predit_boxes.csv",
+    #"person_box_67091280_iou90/ava_detection_train_boxes_and_labels_include_negative_v2.2.csv",
   ]
-  TEST_PREDICT_BOX_LISTS: ["person_box_67091280_iou90/ava_detection_val_boxes_and_labels.csv"]
+  TEST_PREDICT_BOX_LISTS: ["ava_test_predit_boxes.csv"]
+  TRAIN_LISTS : ["train.csv"]
+  TEST_LISTS : ["test.csv"]
+  FULL_TEST_ON_VAL: True
 SLOWFAST:
   ALPHA: 4
   BETA_INV: 8
@@ -59,20 +68,20 @@ SOLVER:
   WARMUP_START_LR: 0.000125
   OPTIMIZING_METHOD: sgd
 MODEL:
-  NUM_CLASSES: 80
+  NUM_CLASSES: 13
   ARCH: slowfast
   MODEL_NAME: SlowFast
   LOSS_FUNC: bce
   DROPOUT_RATE: 0.5
   HEAD_ACT: sigmoid
 TEST:
-  ENABLE: True
+  ENABLE: False
   DATASET: ava
-  BATCH_SIZE: 8
+  BATCH_SIZE: 1
 DATA_LOADER:
   NUM_WORKERS: 2
   PIN_MEMORY: True
-NUM_GPUS: 8
+NUM_GPUS: 1
 NUM_SHARDS: 1
 RNG_SEED: 0
 OUTPUT_DIR: .

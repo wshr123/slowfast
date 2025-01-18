@@ -1,29 +1,54 @@
 TRAIN:
   ENABLE: True
   DATASET: ava
-  BATCH_SIZE: 64
-  EVAL_PERIOD: 5
+  BATCH_SIZE: 16
+  EVAL_PERIOD: 1
   CHECKPOINT_PERIOD: 1
   AUTO_RESUME: True
-  # CHECKPOINT_FILE_PATH: path to the pretrain checkpoint file.
+#  CHECKPOINT_FILE_PATH: '/media/zhong/1.0T/zhong_work/SlowFast/checkpoints/r50-8x8/checkpoint_epoch_00015.pyth'
+  CHECKPOINT_FILE_PATH: "/media/zhong/1.0T/zhong_work/SlowFast/weights/SLOWONLY_8x8_R50.pkl"
   CHECKPOINT_TYPE: caffe2
 DATA:
-  NUM_FRAMES: 4
-  SAMPLING_RATE: 16
+  NUM_FRAMES: 8
+  SAMPLING_RATE: 8
   TRAIN_JITTER_SCALES: [256, 320]
   TRAIN_CROP_SIZE: 224
   TEST_CROP_SIZE: 256
   INPUT_CHANNEL_NUM: [3]
 DETECTION:
   ENABLE: True
-  ALIGNED: True
+  ALIGNED: True #这个设置成false会报错
 AVA:
   DETECTION_SCORE_THRESH: 0.9
+  FRAME_DIR: '/media/zhong/1.0T/zhong_work/CVB/000058916v001/data/raw_frames'
+  FRAME_LIST_DIR: '/media/zhong/1.0T/zhong_work/CVB/000058916v001/data/ava_v2.2'
+  ANNOTATION_DIR: '/media/zhong/1.0T/zhong_work/CVB/000058916v001/data/ava_v2.2'
+  LABEL_MAP_FILE: 'behaviour_list.pbtxt'
+  GROUNDTRUTH_FILE: 'ava_test_set.csv'
+  TRAIN_GT_BOX_LISTS: ['ava_train_set.csv']
   TRAIN_PREDICT_BOX_LISTS: [
-    "ava_train_v2.2.csv",
-    "person_box_67091280_iou90/ava_detection_train_boxes_and_labels_include_negative_v2.2.csv",
+    "ava_train_predit_boxes.csv",
+    #"person_box_67091280_iou90/ava_detection_train_boxes_and_labels_include_negative_v2.2.csv",
   ]
-  TEST_PREDICT_BOX_LISTS: ["person_box_67091280_iou90/ava_detection_val_boxes_and_labels.csv"]
+  TEST_PREDICT_BOX_LISTS: ["ava_test_predit_boxes.csv"]
+  TRAIN_LISTS : ["train.csv"]
+  TEST_LISTS : ["test.csv"]
+  FULL_TEST_ON_VAL: True
+#AVA:
+#  DETECTION_SCORE_THRESH: 0.8
+#  FRAME_DIR: '/media/zhong/1.0T/zhong_work/archive/rawframes_mini'
+#  FRAME_LIST_DIR: '/media/zhong/1.0T/zhong_work/archive/ava2.2_anno'
+#  ANNOTATION_DIR: '/media/zhong/1.0T/zhong_work/archive/ava2.2_anno'
+#  LABEL_MAP_FILE: 'behaviour_list.pbtxt'
+#  GROUNDTRUTH_FILE: 'ava_val_set.csv'
+#  TRAIN_GT_BOX_LISTS: ['ava_train_set.csv']
+#  TRAIN_PREDICT_BOX_LISTS: [
+#    "ava_train_predit_boxes.csv",
+#    #"person_box_67091280_iou90/ava_detection_train_boxes_and_labels_include_negative_v2.2.csv",
+#  ]
+#  TEST_PREDICT_BOX_LISTS: ["ava_val_predit_boxes.csv"]
+#  TRAIN_LISTS : ["train.csv"]
+#  TEST_LISTS : ["val.csv"]
 RESNET:
   ZERO_INIT_FINAL_BN: True
   WIDTH_PER_GROUP: 64
@@ -42,31 +67,52 @@ BN:
   USE_PRECISE_STATS: False
   NUM_BATCHES_PRECISE: 200
 SOLVER:
-  BASE_LR: 0.1
+  BASE_LR: 0.02
   LR_POLICY: steps_with_relative_lrs
   STEPS: [0, 10, 15, 20]
   LRS: [1, 0.1, 0.01, 0.001]
-  MAX_EPOCH: 20
+  MAX_EPOCH: 60
   MOMENTUM: 0.9
   WEIGHT_DECAY: 1e-7
   WARMUP_EPOCHS: 5.0
   WARMUP_START_LR: 0.000125
   OPTIMIZING_METHOD: sgd
 MODEL:
-  NUM_CLASSES: 80
+  NUM_CLASSES: 13
   ARCH: slow
   MODEL_NAME: ResNet
   LOSS_FUNC: bce
   DROPOUT_RATE: 0.5
   HEAD_ACT: sigmoid
 TEST:
-  ENABLE: True
+  ENABLE: False
   DATASET: ava
-  BATCH_SIZE: 8
+  BATCH_SIZE: 1
+  NUM_ENSEMBLE_VIEWS: 1
+  NUM_SPATIAL_CROPS: 1
 DATA_LOADER:
-  NUM_WORKERS: 2
+  NUM_WORKERS: 1
   PIN_MEMORY: True
-NUM_GPUS: 8
+NUM_GPUS: 1
 NUM_SHARDS: 1
 RNG_SEED: 0
 OUTPUT_DIR: .
+TENSORBOARD:
+  MODEL_VIS:
+    TOPK_PREDS: 5
+DEMO:
+  ENABLE: False
+  LABEL_FILE_PATH:  "/media/zhong/1.0T/zhong_work/SlowFast/demo/AVA/cattle.json"
+#  WEBCAM: 0
+  DETECTRON2_CFG: "COCO-Detection/faster_rcnn_R_50_FPN_3x.yaml"
+  DETECTRON2_WEIGHTS: detectron2://COCO-Detection/faster_rcnn_R_50_FPN_3x/137849458/model_final_280758.pkl
+  INPUT_VIDEO: "/media/zhong/1.0T/zhong_work/SlowFast/3.mp4"
+  OUTPUT_FILE: "33.mp4"
+  # Leave an empty string if you would like to display results to a window.
+#export PYTHONPATH=/media/zhong/1.0T/zhong_work/SlowFast:$PYTHONPATH
+#export PYTHONPATH=/media/zhong/1.0T/zhong_work/SlowFast/slowfast:$PYTHONPATH
+#export PYTHONPATH=/media/zhong/1.0T/zhong_work/SlowFast/Detectron2:$PYTHONPATH
+#meters 183,184加了一个判断，不然box的维度会变成N,5和N,13混合的，后面拼接不起来
+#/media/zhong/1.0T/zhong_work/SlowFast/Detectron2/detectron2/model_zoo/model_zoo.py 143行直接指定了路径
+#/media/zhong/1.0T/zhong_work/SlowFast/slowfast/visualization/predictor.py 195选择类别
+#ava helper 128行 ，return (sec - 900) * FPS -> return (sec)
